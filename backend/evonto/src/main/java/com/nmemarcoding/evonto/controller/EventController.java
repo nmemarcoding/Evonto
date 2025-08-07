@@ -51,13 +51,19 @@ public class EventController {
 
     // Get all public events
     @GetMapping
-    public ResponseEntity<List<EventDto>> getAllEvents() {
-        List<EventDto> events = eventService.getAllEvents()
-                .stream()
-                .map(EventDto::new)
-                .collect(Collectors.toList());
+    public ResponseEntity<?> getAllEvents(HttpServletRequest request) {
+        try {
+            jwtUtil.requireValidToken(request);
+            
+            List<EventDto> events = eventService.getAllEvents()
+                    .stream()
+                    .map(EventDto::new)
+                    .collect(Collectors.toList());
 
-        return ResponseEntity.ok(events);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error fetching events: " + e.getMessage());
+        }
     }
 
     // Get events created by the logged-in user (token required)
