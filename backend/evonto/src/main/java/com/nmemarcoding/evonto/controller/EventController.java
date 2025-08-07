@@ -8,9 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.nmemarcoding.evonto.dto.EventDto;
+import com.nmemarcoding.evonto.dto.EventWithInvitationsDto;
+import com.nmemarcoding.evonto.dto.InvitationDto;
 import com.nmemarcoding.evonto.model.Event;
 import com.nmemarcoding.evonto.model.User;
 import com.nmemarcoding.evonto.service.EventService;
+import com.nmemarcoding.evonto.service.InvitationService;
 import com.nmemarcoding.evonto.service.UserService;
 import com.nmemarcoding.evonto.util.JwtUtil;
 
@@ -23,11 +26,13 @@ public class EventController {
     private final EventService eventService;
     private final UserService userService;
     private final JwtUtil jwtUtil;
+    private final InvitationService invitationService; 
 
-    public EventController(EventService eventService, UserService userService, JwtUtil jwtUtil) {
+    public EventController(EventService eventService, UserService userService, JwtUtil jwtUtil, InvitationService invitationService) {
         this.eventService = eventService;
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.invitationService = invitationService;
     }
 
     // Create a new event (token required)
@@ -128,4 +133,35 @@ public class EventController {
             return ResponseEntity.internalServerError().body("Error deleting event: " + e.getMessage());
         }
     }
+
+    @GetMapping("/{id}/details")
+    public ResponseEntity<?> getEventWithGuests(@PathVariable Long id, HttpServletRequest request) {
+        try {
+            jwtUtil.requireValidToken(request);
+            String username = jwtUtil.extractUsernameFromRequest(request);
+
+            User user = userService.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            Event event = eventService.getEventById(id)
+                    .orElseThrow(() -> new RuntimeException("Event not found"));
+
+            if (!event.getCreatedBy().getUserId().equals(user.getUserId())) {
+                return ResponseEntity.status(403).body("You do not own this event");
+            }
+
+            List<InvitationDto> guestList = invitationService.getInvitationsByEvent(event)
+                    .stream()
+                    .map(InvitationDto::new)
+                    .toList();
+
+            EventWithInvitationsDto response = new EventWithInvitationsDto(new EventDto(event), guestList);
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Error fetching event details: " + e.getMessage());
+        }
+    }
+
 }
