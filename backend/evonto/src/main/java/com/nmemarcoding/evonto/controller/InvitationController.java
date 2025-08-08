@@ -7,7 +7,9 @@ import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.nmemarcoding.evonto.dto.EventDto;
 import com.nmemarcoding.evonto.dto.InvitationDto;
+import com.nmemarcoding.evonto.dto.InvitationWithEventDto;
 import com.nmemarcoding.evonto.model.Event;
 import com.nmemarcoding.evonto.model.Invitation;
 import com.nmemarcoding.evonto.model.Invitation.RSVPStatus;
@@ -69,7 +71,7 @@ public class InvitationController {
         }
     }
 
-    // 2. Guest views their invitation info by guest name + optional email
+    // 2. Guest views their invitation info by guest name + optional email, and gets event info too
     @PostMapping("/info")
     public ResponseEntity<?> getInvitationInfo(@RequestBody Map<String, String> payload) {
         try {
@@ -83,12 +85,15 @@ public class InvitationController {
             List<Invitation> invitations = invitationService.getInvitationsByEvent(event);
             Optional<Invitation> found = invitations.stream()
                     .filter(invite -> invite.getGuestName().equalsIgnoreCase(guestName) &&
-                            (guestEmail == null || invite.getGuestEmail() != null &&
-                             invite.getGuestEmail().equalsIgnoreCase(guestEmail)))
+                            (guestEmail == null || (invite.getGuestEmail() != null &&
+                            invite.getGuestEmail().equalsIgnoreCase(guestEmail))))
                     .findFirst();
 
             if (found.isPresent()) {
-                return ResponseEntity.ok(new InvitationDto(found.get()));
+                InvitationDto invitationDto = new InvitationDto(found.get());
+                EventDto eventDto = new EventDto(event);
+                InvitationWithEventDto result = new InvitationWithEventDto(eventDto, invitationDto);
+                return ResponseEntity.ok(result);
             } else {
                 return ResponseEntity.status(404).body("Invitation not found");
             }
@@ -96,6 +101,7 @@ public class InvitationController {
             return ResponseEntity.internalServerError().body("Error fetching invitation: " + e.getMessage());
         }
     }
+
 
     // 3. Guest responds to their invitation
     @PostMapping("/respond")

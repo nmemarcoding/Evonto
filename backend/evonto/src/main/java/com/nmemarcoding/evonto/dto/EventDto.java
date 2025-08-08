@@ -12,7 +12,7 @@ public class EventDto {
     private LocalDateTime startDateTime;
     private LocalDateTime endDateTime;
     private String location;
-    private String createdByUsername;
+    private String hostUsername; 
     private LocalDateTime createdAt;
 
     // Default constructor
@@ -26,8 +26,14 @@ public class EventDto {
         this.startDateTime = event.getStartDateTime();
         this.endDateTime = event.getEndDateTime();
         this.location = event.getLocation();
-        this.createdByUsername = event.getCreatedBy().getUsername();
         this.createdAt = event.getCreatedAt();
+
+        // Null-safe host username assignment
+        if (event.getCreatedBy() != null) {
+            this.hostUsername = event.getCreatedBy().getUsername();
+        } else {
+            this.hostUsername = null; // or "Unknown" if you prefer
+        }
     }
 
     // Getters and setters
@@ -79,12 +85,12 @@ public class EventDto {
         this.location = location;
     }
 
-    public String getCreatedByUsername() {
-        return createdByUsername;
+    public String getHostUsername() {
+        return hostUsername;
     }
 
-    public void setCreatedByUsername(String createdByUsername) {
-        this.createdByUsername = createdByUsername;
+    public void setHostUsername(String hostUsername) {
+        this.hostUsername = hostUsername;
     }
 
     public LocalDateTime getCreatedAt() {
